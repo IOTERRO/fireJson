@@ -1,0 +1,11 @@
+{
+  "nom": "John Doe",
+  "âge": 30,
+  "ville": "New York",
+  "est_étudiant": false,
+  "intérêts": ["informatique", "voyages", "musique"],
+  "adresse": {
+    "rue": "123 Main Street",
+    "code_postal": "10001"
+  }
+}

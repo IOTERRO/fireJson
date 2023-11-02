@@ -1,0 +1,71 @@
+# Fichiers générés par Visual Studio
+*.obj
+#*.exe
+#*.dll
+*.pdb
+*.lib
+*.idb
+*.pch
+*.ipch
+*.res
+*.exp
+*.ilk
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+*.suo
+*.vc.db
+*.vc.db-shm
+*.vc.db-wal
+*.vc.opendb
+*.db
+*.db-shm
+*.db-wal
+*.user
+*.aps
+*.vshost.*
+*.csproj.user
+*.vspscc
+*.vssscc
+*.symbols
+
+# Dossiers générés par Visual Studio
+projectMSVC19
+packages
+#[Bb]in/
+#[Dd]ebug/
+#[Rr]elease/
+#x64/
+#ipch/
+#[Tt]est[Rr]esult*/
+#[Bb]uild/
+
+# Fichiers spécifiques au langage
+*.o
+*.obj
+*.i
+*.s
+*.swp
+*.bak
+*.d
+
+# Fichiers spécifiques aux éditeurs de texte
+~*
+*.swp
+*.bak
+*.backup
+*.orig
+
+
+# Fichiers de configuration Visual Studio
+*.sqlite
+ProjectSettings.json
+VSWorkspaceState.json
+
+#fichier externe
+External
+
+
+#web
+techWaveApp
