@@ -31,7 +31,7 @@ fireJson is a versatile application built on the popular wxWidgets framework tha
 - **Open Source:** fireJson is open source, allowing you to customize and extend its functionality to suit your specific testing needs.
 
 ## Get Started
-To start using fireJson for your real-time application testing and development, download the latest release or clone the repository. For more information, check out the documentation and examples on our [GitHub repository](https://github.com/yourusername/fireJson).
+To start using fireJson for your real-time application testing and development, download the latest release or clone the repository. For more information, check out the documentation and examples on our [GitHub repository](https://github.com/IOTERRO/fireJson).
 
 ## Contributions
 Contributions and feedback are welcome. If you have ideas for improvements or new features, please submit a pull request or create an issue on our [GitHub repository](https://github.com/IOTERRO/fireJson/).
