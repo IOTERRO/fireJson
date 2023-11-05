@@ -32,4 +32,6 @@ private:
 	std::string _serverReplyMessage;
 	std::string _clientSendMessage;
 	std::thread _ioContextThread;
+	std::thread _ioThread; // Thread pour ioContext.run(
+    boost::asio::io_context _ioContext;
 };

@@ -5,6 +5,8 @@
 
 
 using namespace boost;
+static asio::io_context ioContext;
+
 
 WebSocketManager::WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage):
     _onMessage(std::move(onMessage)),
@@ -22,7 +24,9 @@ WebSocketManager::WebSocketManager(std::string host, const std::string& port):
 
 WebSocketManager::~WebSocketManager()
 {
-    
+    ioContext.reset();
+    _myAsyncServer.reset();
+    _mySyncServer.reset();
 }
 
 void WebSocketManager::createSyncWebSocketServer()
@@ -36,7 +40,6 @@ void WebSocketManager::createAsyncWebSocketServer()
 {
     try
     {
-        asio::io_context ioContext;
         _myAsyncServer = std::make_shared<AsyncWebSocketServer>([this](std::string msg) {
             subscribeForNewMessage(msg);
             }, ioContext, _host, _port);

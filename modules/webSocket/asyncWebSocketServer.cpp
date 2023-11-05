@@ -78,25 +78,41 @@ AsyncWebSocketServer::AsyncWebSocketServer(std::function<void(std::string)> onMe
     startAccept();
 }
 
+AsyncWebSocketServer::~AsyncWebSocketServer()
+{
+    _acceptor.close();
+    _acceptor.release();
+
+    _ioContext.stop();
+    _ioContext.reset();
+
+
+}
+
 void AsyncWebSocketServer::startAccept()
 {
-    _acceptor.async_accept(
-        [this](boost::system::error_code ec, Tcp::socket socket)
+    _acceptor.async_accept([this](boost::system::error_code ec, Tcp::socket socket)
         {
-            boost::thread{ [s = std::move(socket), this] ()
+            if (!ec)
+            {
+                // Start a new thread to handle the WebSocket session
+                boost::thread{ [s = std::move(socket), this] ()
                 {
-                  handleClients(std::move(const_cast<Tcp::socket&>(s)));
-                }
-            }.detach();
+                    handleClients(std::move(const_cast<Tcp::socket&>(s)));
+                } }.detach();
 
-            startAccept();
+                // Continue accepting new connections
+                startAccept();
+            }
+            else
+            {
+                //[OT]: TODO  Handle the error (e.g., log it)
+            }
         });
 }
 
 void AsyncWebSocketServer::handleClients(Tcp::socket socket) const
 {
-
-    boost::asio::io_context ioContext;
     WebSocketSession session(std::move(socket), [this](const std::string& msg) {
         subscribeForNewMessage(msg);
         });

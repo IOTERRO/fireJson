@@ -85,6 +85,7 @@ int MyJSON::jsonToString(const std::string& filePath, std::string& reply) const
         return 0;
     }
     catch (const std::exception& e) {
+        auto what = e.what();
         std::cerr << "Error: " << e.what() << std::endl;
         return -1;
     }

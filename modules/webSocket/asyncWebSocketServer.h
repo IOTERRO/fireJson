@@ -31,7 +31,7 @@ class AsyncWebSocketServer
 {
 public:
     AsyncWebSocketServer(std::function<void(std::string)> onMessage, boost::asio::io_context& io_context, const std::string& address, short port);
-    ~AsyncWebSocketServer()= default;
+    ~AsyncWebSocketServer();
     void sendMessages(const std::string& msg);
 
 private:
