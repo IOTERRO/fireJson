@@ -27,7 +27,10 @@ public:
 
     static void toJson(const std::string& jsonFile, jsonInfos infos);
     static jsonInfos fromJson(const std::string& jsonFile);
-	int jsonToString(const std::string& filePath, std::string& reply) const;
+	bool convertFileToUtf8(const std::string& filePath, std::string& contentUtf8) const;
+	bool ifUtf8(const std::string& filePath) const;
+	std::string fileToString(const std::string& filePath) const;
+	int jsonToString(const std::string& filePath, std::string& reply, std::string contentUTF8 = std::string()) const;
 	std::string removeEscapeChars(std::string input);
 private:
 

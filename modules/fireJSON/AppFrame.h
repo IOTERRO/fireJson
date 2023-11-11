@@ -66,6 +66,7 @@ class FrameMain : public wxFrame
 		wxStaticText* _wsPortLabel;
 		wxTextCtrl* _wsPortNumber;
 		wxButton* _fireButton;
+		wxTextCtrl* _consol;
 		wxMenu* _menuFile;
 		wxMenuItem* _menuItemFileNew;
 		wxMenuItem* _menuItemFileOpen;

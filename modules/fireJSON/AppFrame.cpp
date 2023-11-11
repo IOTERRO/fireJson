@@ -39,21 +39,27 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	_fireJsonPanel = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
 	_fireJsonPanel->Hide();
 
-	wxBoxSizer* bSizer7;
-	bSizer7 = new wxBoxSizer( wxVERTICAL );
+	wxBoxSizer* bSizer22;
+	bSizer22 = new wxBoxSizer( wxVERTICAL );
 
-	wxBoxSizer* bSizer9;
-	bSizer9 = new wxBoxSizer( wxVERTICAL );
+	wxBoxSizer* bSizer24;
+	bSizer24 = new wxBoxSizer( wxVERTICAL );
 
 	m_staticText6 = new wxStaticText( _fireJsonPanel, wxID_ANY, _("FireJSON"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText6->Wrap( -1 );
 	m_staticText6->SetFont( wxFont( 18, wxFONTFAMILY_MODERN, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_BOLD, false, wxT("Courier New") ) );
 	m_staticText6->SetForegroundColour( wxColour( 0, 0, 160 ) );
 
-	bSizer9->Add( m_staticText6, 0, wxALIGN_CENTER|wxALL, 8 );
+	bSizer24->Add( m_staticText6, 0, wxALIGN_CENTER|wxALL, 8 );
 
 
-	bSizer7->Add( bSizer9, 0, wxEXPAND, 5 );
+	bSizer22->Add( bSizer24, 0, wxEXPAND, 0 );
+
+	wxBoxSizer* bSizer13;
+	bSizer13 = new wxBoxSizer( wxHORIZONTAL );
+
+	wxBoxSizer* bSizer7;
+	bSizer7 = new wxBoxSizer( wxVERTICAL );
 
 	wxBoxSizer* bSizer8;
 	bSizer8 = new wxBoxSizer( wxHORIZONTAL );
@@ -103,9 +109,27 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	bSizer7->Add( bSizer10, 0, wxALIGN_CENTER|wxALL, 10 );
 
 
-	_fireJsonPanel->SetSizer( bSizer7 );
+	bSizer13->Add( bSizer7, 1, wxEXPAND, 5 );
+
+	wxBoxSizer* bSizer15;
+	bSizer15 = new wxBoxSizer( wxVERTICAL );
+
+
+	bSizer15->Add( 0, 0, 0, wxALL, 4 );
+
+	_consol = new wxTextCtrl( _fireJsonPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
+	bSizer15->Add( _consol, 1, wxALL|wxEXPAND, 0 );
+
+
+	bSizer13->Add( bSizer15, 1, wxEXPAND, 5 );
+
+
+	bSizer22->Add( bSizer13, 1, wxEXPAND, 5 );
+
+
+	_fireJsonPanel->SetSizer( bSizer22 );
 	_fireJsonPanel->Layout();
-	bSizer7->Fit( _fireJsonPanel );
+	bSizer22->Fit( _fireJsonPanel );
 	bSizerFrameMain->Add( _fireJsonPanel, 1, wxEXPAND | wxALL, 0 );
 
 

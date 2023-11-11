@@ -16,14 +16,21 @@ AppGUI::AppGUI():
     _fileNameEntered(false),
     _fileSaveAllowed(false),
     _isWsUrlValid(false),
-    _isWsPortValid(false)
+    _isWsPortValid(false),
+    _wsMessageEnabled(false),
+    _threadSafe(true)
 {
     _jsonParser = std::make_shared<MyJSON>();
 }
 
 AppGUI::~AppGUI()
 {
+
+    _threadSafe = false;
+    Sleep(100);
+
     _wsManager.reset();
+
     _thread.interrupt();
 
     // Attendez que le thread se termine
@@ -81,6 +88,7 @@ bool AppGUI::OnInit()
      _frame->_fireButton->Bind(wxEVT_BUTTON, [&](const wxCommandEvent&)
                               {
 
+                                  _frame->_consol->SetValue("");
                                   if(!_filePath.empty())
                                   {
                                       std::filesystem::path path(_filePath);
@@ -88,7 +96,6 @@ bool AppGUI::OnInit()
                                       std::filesystem::path directoryPath = path.parent_path();
                                       // Convert it back to a string
                                       const std::string directoryPathStr = directoryPath.string();
-
                                       processFireButton(directoryPathStr);
                                   }
                                   else
@@ -97,16 +104,7 @@ bool AppGUI::OnInit()
                                       processFireButton("jsonFireTest");
                                   }
 
-                                  std::string reply;
-                                  for (const auto& pair : _jsonFiles) {
-                                      _jsonParser->jsonToString(pair.second, reply);
-                                      std::cout << reply << std::endl;
-                                      _wsManager->sendWsMessage(reply);
-                                      if(_jsonFiles.size() > 1)
-                                      {
-                                          Sleep(2000);
-                                      }
-                                  }
+                                  _wsMessageEnabled = true;
                               });
 
     _frame->Show();
@@ -121,7 +119,7 @@ int AppGUI::OnExit()
 void AppGUI::notifyMe(std::string msg)
 {
     std::cout << "msg:" << msg <<std::endl;
-   // _frame->_logger->SetValue(msg);
+   _frame->_consol->SetValue(msg);
 }
 
 void AppGUI::doWork()
@@ -131,6 +129,37 @@ void AppGUI::doWork()
         notifyMe(std::move(msg));
         });
     _wsManager->createAsyncWebSocketServer();
+}
+
+void AppGUI::onMessageDoWork()
+{
+    while(_threadSafe)
+    {
+        if(_wsMessageEnabled)
+        {
+            std::string contentFileUtf = "";
+            std::string reply;
+            for (const auto& pair : _jsonFiles) {
+                if (_jsonParser->ifUtf8(pair.second))
+                {
+                    _jsonParser->convertFileToUtf8(pair.second, contentFileUtf);
+                    _jsonParser->jsonToString(pair.second, reply, contentFileUtf);
+                    _wsManager->sendWsMessage(reply);
+                    if (_jsonFiles.size() > 1)
+                    {
+                        Sleep(2000);
+                    }
+                }
+                else
+                {
+                    _frame->_consol->SetValue(pair.first + " is not a valid UTF-8 file");
+                    break;
+                }
+            }
+            _wsMessageEnabled = false;
+        }
+        Sleep(1000);
+    }
 }
 
 void AppGUI::onMenuItemFile(const wxCommandEvent& event)
@@ -386,6 +415,7 @@ void AppGUI::fireState()
     if(_isWsUrlValid && _isWsPortValid)
     {
         _thread = boost::thread(&AppGUI::doWork, this);
+        _onMessagethread = boost::thread(&AppGUI::onMessageDoWork, this);
         _frame->_fireButton->Enable();
     }
     else
@@ -415,5 +445,3 @@ void AppGUI::processFireButton(const std::string& folderPath)
         std::cout << "Default folder does not exist or is not a directory." << std::endl;
     }
 }
-
-

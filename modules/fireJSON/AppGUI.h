@@ -20,6 +20,7 @@ private:
 
     void notifyMe(std::string msg);
     void doWork();
+    void onMessageDoWork();
 
     //file menu
     void onMenuItemFile(const wxCommandEvent& event);
@@ -49,6 +50,7 @@ private:
     std::shared_ptr<WebSocketManager> _wsManager;
     std::shared_ptr<MyJSON> _jsonParser;
     boost::thread _thread;
+    boost::thread _onMessagethread;
     std::string _jsonMessage;
     std::string _filePath;
     std::string _fileName;
@@ -57,6 +59,7 @@ private:
     //ws
     std::string _wsUrl;
     std::string _wsPort;
+    std::string _wsMessage;
     std::map<std::string, std::string> _jsonFiles;// A map to store the JSON file names
 
     //file booleans
@@ -66,4 +69,8 @@ private:
     //ws booleans
     bool _isWsUrlValid;
     bool _isWsPortValid;
+    bool _wsMessageEnabled;
+
+    //thread safe
+    bool _threadSafe;
 };

@@ -1,6 +1,10 @@
+#include <boost/locale.hpp>
+#include <utf8.h>
+
 #include <iostream>
-#include "myJson.h"
 #include <fstream>
+
+#include "myJson.h"
 
 
 using json = nlohmann::json;
@@ -67,20 +71,11 @@ jsonInfos MyJSON::fromJson(const std::string& jsonFile)
     return infos;
 }
 
-int MyJSON::jsonToString(const std::string& filePath, std::string& reply) const
+int MyJSON::jsonToString(const std::string& filePath, std::string& reply, std::string contentUTF8) const
 {
-    std::ifstream ifs(filePath);
-    if (!ifs.is_open()) {
-        std::cerr << "Error: Cannot open file " << filePath << std::endl;
-        return -1;
-    }
-
-    // read file into string
-    std::string jsonString((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-
     // parse json string and return
     try {
-        nlohmann::json json = nlohmann::json::parse(jsonString);
+        nlohmann::json json = nlohmann::json::parse(contentUTF8);
         reply = json.dump();
         return 0;
     }
@@ -111,4 +106,45 @@ std::string MyJSON::removeEscapeChars(std::string input) {
     }
 
     return output;
+}
+
+
+bool MyJSON::convertFileToUtf8(const std::string& filePath, std::string& contentUtf8) const
+{
+    // Read the content of the file into a string
+    const std::string content = fileToString(filePath);
+
+    // If the encoding is not UTF-8, convert the content to UTF-8
+    if (!ifUtf8(filePath)) {
+        contentUtf8 = boost::locale::conv::to_utf<char>(content, "UTF-8"); // Replace "ISO-8859-1" with the actual encoding
+    }
+    else {
+        contentUtf8 = content;
+    }
+
+    return true;
+}
+
+bool MyJSON::ifUtf8(const std::string& filePath) const
+{
+    // Detect the encoding using utf8cpp
+    if(auto content= fileToString(filePath); utf8::is_valid(content.begin(), content.end()))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+std::string MyJSON::fileToString(const std::string& filePath) const
+{
+    // Read the content of the file
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: Unable to open the file." << std::endl;
+        return false;
+    }
+
+    // Read the content of the file into a string
+    return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 }
