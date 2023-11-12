@@ -22,26 +22,38 @@ private:
     void doWork();
     void onMessageDoWork();
 
-    //file menu
+    //Adapt the size of the panels
+    enum class PanelType
+    {
+        Fire,
+        Editor
+    };
+    void adaptSize(PanelType type) const;
+
+    //File menu
     void onMenuItemFile(const wxCommandEvent& event);
     void onFileNewClicked();
     void onFileOpenClicked();
     void onFileSaveClicked();
     void onFileExitClicked();
 
-    void onTextModified(wxCommandEvent& event);
-
+    //About menu
     void onMenuItemAbout(const wxCommandEvent& event);
+    //Edit menu
     void onMenuItemEdit(const wxCommandEvent& event);
+    //Fire menu
     void onMenuItemFire(const wxCommandEvent& event);
 
-    //ws url
+    //Ws url
     void onWsUrlTextChanged(wxCommandEvent& event);
     void onWsPortTextChanged(wxCommandEvent& event);
 
-    //fire button
+    //Fire button
     void fireState();
     void processFireButton(const std::string& folderPath);
+
+    //Triggered text editing on editor
+    void onTextModified(wxCommandEvent& event);
 
     FrameMain* _frame = nullptr;
     DialogAbout* _dialogAbout = nullptr;
@@ -56,21 +68,21 @@ private:
     std::string _fileName;
     std::string _previousText;
 
-    //ws
+    //Ws
     std::string _wsUrl;
     std::string _wsPort;
     std::string _wsMessage;
     std::map<std::string, std::string> _jsonFiles;// A map to store the JSON file names
 
-    //file booleans
+    //File booleans
     bool _fileNameEntered;
     bool _fileSaveAllowed;
 
-    //ws booleans
+    //Ws booleans
     bool _isWsUrlValid;
     bool _isWsPortValid;
     bool _wsMessageEnabled;
 
-    //thread safe
+    //Thread safe
     bool _threadSafe;
 };

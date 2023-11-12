@@ -55,6 +55,9 @@ bool AppGUI::OnInit()
     _frame->_textEditorPanel->Hide();
     _frame->_fireJsonPanel->Show();
 
+    _frame->_fireGauge->SetRange(100);
+    _frame->_fireGauge->Hide();
+
     //_logTextCtrl = new wxLogTextCtrl(_frame->_logTextCtrl);
     wxLog::SetActiveTarget(_logTextCtrl);
     wxLog::SetLogLevel(wxLOG_Trace);
@@ -101,7 +104,7 @@ bool AppGUI::OnInit()
                                   else
                                   {
                                       //default folder
-                                      processFireButton("jsonFireTest");
+                                      processFireButton("singleTest");
                                   }
 
                                   _wsMessageEnabled = true;
@@ -133,22 +136,37 @@ void AppGUI::doWork()
 
 void AppGUI::onMessageDoWork()
 {
-    while(_threadSafe)
+    while(_threadSafe && _frame != nullptr)
     {
         if(_wsMessageEnabled)
         {
+            _frame->_fireButton->Disable();
+            _frame->_fireGauge->Show();
             std::string contentFileUtf = "";
             std::string reply;
+
+            const int totalIterations = static_cast<int>(_jsonFiles.size());
+            int iterations = 0;
             for (const auto& pair : _jsonFiles) {
                 if (_jsonParser->ifUtf8(pair.second))
                 {
                     _jsonParser->convertFileToUtf8(pair.second, contentFileUtf);
                     _jsonParser->jsonToString(pair.second, reply, contentFileUtf);
                     _wsManager->sendWsMessage(reply);
-                    if (_jsonFiles.size() > 1)
+                    // Calculate the progress and update the gauge
+                    const int progress = static_cast<int>((iterations + 1) * 100.0 / totalIterations);
+                    _frame->_fireGauge->SetValue(progress);
+                    iterations++;
+
+                    if (progress != 100)
                     {
                         Sleep(2000);
                     }
+                    else
+                    {
+                        Sleep(500);
+                    }
+
                 }
                 else
                 {
@@ -158,7 +176,25 @@ void AppGUI::onMessageDoWork()
             }
             _wsMessageEnabled = false;
         }
+        _frame->_fireButton->Enable();
+        _frame->_fireGauge->SetValue(0);
+        _frame->_fireGauge->Hide();
         Sleep(1000);
+    }
+}
+
+void AppGUI::adaptSize(const PanelType type) const
+{
+    int w, h;
+    if(type == PanelType::Fire)
+    {
+        _frame->_textEditorPanel->GetSize(&w, &h);
+        _frame->_fireJsonPanel->SetSize(w, h);
+    }
+    else if(type == PanelType::Editor)
+    {
+        _frame->_fireJsonPanel->GetSize(&w, &h); 
+        _frame->_textEditorPanel->SetSize(w, h);
     }
 }
 
@@ -194,10 +230,13 @@ void AppGUI::onFileNewClicked()
     _frame->_textEditorPanel->Show();
     _frame->_fireJsonPanel->Hide();
 
+    adaptSize(PanelType::Editor);
+
 }
 
 void AppGUI::onFileOpenClicked()
 {
+    adaptSize(PanelType::Editor);
     if (const wxString filePath = wxFileSelector("Open JSON File", "", "", "", "JSON Files (*.json)|*.json", wxFD_OPEN); !filePath.empty())
     {
         // Read the contents of the selected file
@@ -345,6 +384,7 @@ void AppGUI::onMenuItemEdit(const wxCommandEvent& event)
 void AppGUI::onMenuItemFire(const wxCommandEvent& event)
 {
     if (event.GetId() == _frame->_menuItemFire->GetId()) {
+         adaptSize(PanelType::Fire);
         _frame->_textEditorPanel->Hide();
         _frame->_fireJsonPanel->Show();
     }

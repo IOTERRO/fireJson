@@ -97,16 +97,26 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	wxBoxSizer* bSizer10;
 	bSizer10 = new wxBoxSizer( wxVERTICAL );
 
+
+	bSizer10->Add( 0, 0, 0, wxALL, 30 );
+
 	_fireButton = new wxButton( _fireJsonPanel, wxID_ANY, _("Fire"), wxDefaultPosition, wxSize( 100,50 ), 0 );
 	_fireButton->SetFont( wxFont( 12, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxT("Arial") ) );
 	_fireButton->SetForegroundColour( wxColour( 7, 28, 120 ) );
 	_fireButton->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_BTNSHADOW ) );
 	_fireButton->Enable( false );
 
-	bSizer10->Add( _fireButton, 0, wxALL, 6 );
+	bSizer10->Add( _fireButton, 0, wxALIGN_CENTER, 0 );
 
 
-	bSizer7->Add( bSizer10, 0, wxALIGN_CENTER|wxALL, 10 );
+	bSizer10->Add( 0, 0, 1, wxEXPAND, 5 );
+
+	_fireGauge = new wxGauge( _fireJsonPanel, wxID_ANY, 100, wxPoint( -1,-1 ), wxSize( 80,-1 ), wxGA_HORIZONTAL );
+	_fireGauge->SetValue( 0 );
+	bSizer10->Add( _fireGauge, 0, wxALIGN_CENTER|wxALL, 10 );
+
+
+	bSizer7->Add( bSizer10, 1, wxEXPAND, 0 );
 
 
 	bSizer13->Add( bSizer7, 1, wxEXPAND, 5 );

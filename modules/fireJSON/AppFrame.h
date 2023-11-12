@@ -23,6 +23,7 @@
 #include <wx/bitmap.h>
 #include <wx/image.h>
 #include <wx/icon.h>
+#include <wx/gauge.h>
 #include <wx/menu.h>
 #include <wx/frame.h>
 #include <wx/dialog.h>
@@ -66,6 +67,7 @@ class FrameMain : public wxFrame
 		wxStaticText* _wsPortLabel;
 		wxTextCtrl* _wsPortNumber;
 		wxButton* _fireButton;
+		wxGauge* _fireGauge;
 		wxTextCtrl* _consol;
 		wxMenu* _menuFile;
 		wxMenuItem* _menuItemFileNew;
@@ -84,7 +86,7 @@ class FrameMain : public wxFrame
 		wxMenu* _menuHelp;
 		wxMenuItem* _menuItemAbout;
 
-		FrameMain( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("FireJSON"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 612,399 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
+		FrameMain( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("FireJSON"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 700,399 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
 
 		~FrameMain();
 
