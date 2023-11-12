@@ -27,6 +27,7 @@
 #include <wx/menu.h>
 #include <wx/frame.h>
 #include <wx/dialog.h>
+#include <wx/html/htmlwin.h>
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -54,6 +55,8 @@ class FrameMain : public wxFrame
 		virtual void _menuItemEditDeleteOnMenuSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void _menuItemEditSelectAllOnMenuSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void _menuItemFireOnMenuSelection( wxCommandEvent& event ) { event.Skip(); }
+		virtual void _menuItemAutoModeOnMenuSelection( wxCommandEvent& event ) { event.Skip(); }
+		virtual void _menuItemInteractiveModeOnMenuSelection( wxCommandEvent& event ) { event.Skip(); }
 		virtual void _menuItemAboutOnMenuSelection( wxCommandEvent& event ) { event.Skip(); }
 
 
@@ -83,6 +86,9 @@ class FrameMain : public wxFrame
 		wxMenuItem* _menuItemEditSelectAll;
 		wxMenu* _menuFire;
 		wxMenuItem* _menuItemFire;
+		wxMenu* _menuItemTestMode;
+		wxMenuItem* _menuItemAutoMode;
+		wxMenuItem* _menuItemInteractiveMode;
 		wxMenu* _menuHelp;
 		wxMenuItem* _menuItemAbout;
 
@@ -108,6 +114,31 @@ class DialogAbout : public wxDialog
 		DialogAbout( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 256,200 ), long style = wxDEFAULT_DIALOG_STYLE );
 
 		~DialogAbout();
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+/// Class AboutMePage
+///////////////////////////////////////////////////////////////////////////////
+class AboutMePage : public wxDialog
+{
+	private:
+
+	protected:
+
+		// Virtual event handlers, override them in your derived class
+		virtual void _htmlPageAboutOnChar( wxKeyEvent& event ) { event.Skip(); }
+		virtual void _htmlPageAboutOnHtmlCellClicked( wxHtmlCellEvent& event ) { event.Skip(); }
+		virtual void _htmlPageAboutOnHtmlCellHover( wxHtmlCellEvent& event ) { event.Skip(); }
+		virtual void _htmlPageAboutOnHtmlLinkClicked( wxHtmlLinkEvent& event ) { event.Skip(); }
+
+
+	public:
+		wxHtmlWindow* _htmlPageAbout;
+
+		AboutMePage( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 256,200 ), long style = wxDEFAULT_DIALOG_STYLE );
+
+		~AboutMePage();
 
 };
 

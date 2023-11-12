@@ -7,7 +7,7 @@
 #include "webSocketManager.h"
 #include "myJson.h"
 
-class AppGUI final : public wxApp
+class AppGUI final : public wxApp, public wxWindow
 {
 public:
     AppGUI();
@@ -18,9 +18,11 @@ public:
 
 private:
 
-    void notifyMe(std::string msg);
+    void notifyMe(const std::string& msg);
     void doWork();
     void onMessageDoWork();
+    void autoMode();
+    void interactiveMode(const unsigned int indexFile);
 
     //Adapt the size of the panels
     enum class PanelType
@@ -43,6 +45,7 @@ private:
     void onMenuItemEdit(const wxCommandEvent& event);
     //Fire menu
     void onMenuItemFire(const wxCommandEvent& event);
+    void onMenuFireItemTestMode(const wxCommandEvent& event);
 
     //Ws url
     void onWsUrlTextChanged(wxCommandEvent& event);
@@ -57,6 +60,7 @@ private:
 
     FrameMain* _frame = nullptr;
     DialogAbout* _dialogAbout = nullptr;
+    //AboutMePage* _dialogAboutMePage = nullptr;
 
     wxLogTextCtrl* _logTextCtrl = nullptr;
     std::shared_ptr<WebSocketManager> _wsManager;
@@ -72,7 +76,18 @@ private:
     std::string _wsUrl;
     std::string _wsPort;
     std::string _wsMessage;
-    std::map<std::string, std::string> _jsonFiles;// A map to store the JSON file names
+
+    //JSON files map
+    std::map<unsigned int, std::map<std::string, std::string>>_jsonFiles;// A map to store the JSON file names
+    unsigned int _jsonFilesMapIndex{};
+
+    //Test mode
+    enum class TestMode
+    {
+        Auto,
+        Interactive
+    };
+    TestMode _testMode;
 
     //File booleans
     bool _fileNameEntered;

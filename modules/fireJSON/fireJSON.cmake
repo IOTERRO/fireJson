@@ -39,11 +39,33 @@
       DEPENDENCIES
          ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxbase32u$<$<CONFIG:debug>:d>.lib
          ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_core.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_html.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxbase32u$<$<CONFIG:debug>:d>_net.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxbase32u$<$<CONFIG:debug>:d>_xml.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_adv.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_aui.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_gl.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_media.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_propgrid.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_qa.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_ribbon.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_richtext.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_stc.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_webview.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_xrc.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxexpat$<$<CONFIG:debug>:d>.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxjpeg$<$<CONFIG:debug>:d>.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxpng$<$<CONFIG:debug>:d>.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxregexu$<$<CONFIG:debug>:d>.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxscintilla$<$<CONFIG:debug>:d>.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxtiff$<$<CONFIG:debug>:d>.lib
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxzlib$<$<CONFIG:debug>:d>.lib
 		 webSocket
 		 jsonParser
       POSTBUILD_COPY
          ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxbase32u$<$<CONFIG:debug>:d>_vc14x.dll
          ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_core_vc14x.dll
+		 ${wxWidgets_ROOT_DIR}/lib/vc14x_dll/wxmsw32u$<$<CONFIG:debug>:d>_html_vc14x.dll
    )
 
 #endif()

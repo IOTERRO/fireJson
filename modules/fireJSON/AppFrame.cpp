@@ -195,6 +195,20 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	_menuItemFire = new wxMenuItem( _menuFire, wxID_ANY, wxString( _("FireJSON") ) + wxT('\t') + wxT("Ctrl+F"), wxEmptyString, wxITEM_NORMAL );
 	_menuFire->Append( _menuItemFire );
 
+	_menuItemTestMode = new wxMenu();
+	wxMenuItem* _menuItemTestModeItem = new wxMenuItem( _menuFire, wxID_ANY, _("Test Mode"), wxEmptyString, wxITEM_NORMAL, _menuItemTestMode );
+	#if (defined( __WXMSW__ ) || defined( __WXGTK__ ) || defined( __WXOSX__ ))
+	_menuItemTestModeItem->SetBitmap( wxNullBitmap );
+	#endif
+
+	_menuItemAutoMode = new wxMenuItem( _menuItemTestMode, wxID_ANY, wxString( _("Auto") ) , wxEmptyString, wxITEM_RADIO );
+	_menuItemTestMode->Append( _menuItemAutoMode );
+
+	_menuItemInteractiveMode = new wxMenuItem( _menuItemTestMode, wxID_ANY, wxString( _("Interactive") ) , wxEmptyString, wxITEM_RADIO );
+	_menuItemTestMode->Append( _menuItemInteractiveMode );
+
+	_menuFire->Append( _menuItemTestModeItem );
+
 	_menubarMain->Append( _menuFire, _("Fire") );
 
 	_menuHelp = new wxMenu();
@@ -220,6 +234,8 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	_menuEdit->Bind(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FrameMain::_menuItemEditDeleteOnMenuSelection ), this, _menuItemEditDelete->GetId());
 	_menuEdit->Bind(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FrameMain::_menuItemEditSelectAllOnMenuSelection ), this, _menuItemEditSelectAll->GetId());
 	_menuFire->Bind(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FrameMain::_menuItemFireOnMenuSelection ), this, _menuItemFire->GetId());
+	_menuItemTestMode->Bind(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FrameMain::_menuItemAutoModeOnMenuSelection ), this, _menuItemAutoMode->GetId());
+	_menuItemTestMode->Bind(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FrameMain::_menuItemInteractiveModeOnMenuSelection ), this, _menuItemInteractiveMode->GetId());
 	_menuHelp->Bind(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( FrameMain::_menuItemAboutOnMenuSelection ), this, _menuItemAbout->GetId());
 }
 
@@ -266,4 +282,37 @@ DialogAbout::DialogAbout( wxWindow* parent, wxWindowID id, const wxString& title
 
 DialogAbout::~DialogAbout()
 {
+}
+
+AboutMePage::AboutMePage( wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style ) : wxDialog( parent, id, title, pos, size, style )
+{
+	this->SetSizeHints( wxDefaultSize, wxDefaultSize );
+
+	wxBoxSizer* bSizer20;
+	bSizer20 = new wxBoxSizer( wxVERTICAL );
+
+	_htmlPageAbout = new wxHtmlWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO );
+	bSizer20->Add( _htmlPageAbout, 1, wxALL|wxEXPAND, 5 );
+
+
+	this->SetSizer( bSizer20 );
+	this->Layout();
+
+	this->Centre( wxBOTH );
+
+	// Connect Events
+	_htmlPageAbout->Connect( wxEVT_CHAR, wxKeyEventHandler( AboutMePage::_htmlPageAboutOnChar ), NULL, this );
+	_htmlPageAbout->Connect( wxEVT_COMMAND_HTML_CELL_CLICKED, wxHtmlCellEventHandler( AboutMePage::_htmlPageAboutOnHtmlCellClicked ), NULL, this );
+	_htmlPageAbout->Connect( wxEVT_COMMAND_HTML_CELL_HOVER, wxHtmlCellEventHandler( AboutMePage::_htmlPageAboutOnHtmlCellHover ), NULL, this );
+	_htmlPageAbout->Connect( wxEVT_COMMAND_HTML_LINK_CLICKED, wxHtmlLinkEventHandler( AboutMePage::_htmlPageAboutOnHtmlLinkClicked ), NULL, this );
+}
+
+AboutMePage::~AboutMePage()
+{
+	// Disconnect Events
+	_htmlPageAbout->Disconnect( wxEVT_CHAR, wxKeyEventHandler( AboutMePage::_htmlPageAboutOnChar ), NULL, this );
+	_htmlPageAbout->Disconnect( wxEVT_COMMAND_HTML_CELL_CLICKED, wxHtmlCellEventHandler( AboutMePage::_htmlPageAboutOnHtmlCellClicked ), NULL, this );
+	_htmlPageAbout->Disconnect( wxEVT_COMMAND_HTML_CELL_HOVER, wxHtmlCellEventHandler( AboutMePage::_htmlPageAboutOnHtmlCellHover ), NULL, this );
+	_htmlPageAbout->Disconnect( wxEVT_COMMAND_HTML_LINK_CLICKED, wxHtmlLinkEventHandler( AboutMePage::_htmlPageAboutOnHtmlLinkClicked ), NULL, this );
+
 }

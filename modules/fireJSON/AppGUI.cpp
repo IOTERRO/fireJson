@@ -13,6 +13,7 @@ wxIMPLEMENT_APP(AppGUI);
 
 AppGUI::AppGUI():
     _fileName("*Untitled..."),
+    _testMode(TestMode::Auto),
     _fileNameEntered(false),
     _fileSaveAllowed(false),
     _isWsUrlValid(false),
@@ -58,6 +59,8 @@ bool AppGUI::OnInit()
     _frame->_fireGauge->SetRange(100);
     _frame->_fireGauge->Hide();
 
+    //_dialogAboutMePage = new AboutMePage(this, wxID_ANY, "About Me", wxDefaultPosition, wxSize(400, 300), wxDEFAULT_DIALOG_STYLE);
+
     //_logTextCtrl = new wxLogTextCtrl(_frame->_logTextCtrl);
     wxLog::SetActiveTarget(_logTextCtrl);
     wxLog::SetLogLevel(wxLOG_Trace);
@@ -77,6 +80,10 @@ bool AppGUI::OnInit()
         });
     _frame->_menuFire->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& event) {
         onMenuItemFire(event);
+        });
+
+    _frame->_menuItemTestMode->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& event) {
+        onMenuFireItemTestMode(event);
         });
 
     //text editor
@@ -104,7 +111,7 @@ bool AppGUI::OnInit()
                                   else
                                   {
                                       //default folder
-                                      processFireButton("singleTest");
+                                      processFireButton("JsonTest");
                                   }
 
                                   _wsMessageEnabled = true;
@@ -119,10 +126,22 @@ int AppGUI::OnExit()
     return wxApp::OnExit();
 }
 
-void AppGUI::notifyMe(std::string msg)
+void AppGUI::notifyMe(const std::string& msg)
 {
-    std::cout << "msg:" << msg <<std::endl;
    _frame->_consol->SetValue(msg);
+
+    if(_testMode == TestMode::Interactive && _jsonFiles.size() > 0)
+    {
+        _jsonFilesMapIndex++;
+        if(_jsonFilesMapIndex < _jsonFiles.size())
+        {
+            interactiveMode(_jsonFilesMapIndex);
+            return;
+        }
+
+        _jsonFilesMapIndex = 0;
+        interactiveMode(_jsonFilesMapIndex);
+    }
 }
 
 void AppGUI::doWork()
@@ -142,44 +161,78 @@ void AppGUI::onMessageDoWork()
         {
             _frame->_fireButton->Disable();
             _frame->_fireGauge->Show();
-            std::string contentFileUtf = "";
-            std::string reply;
 
-            const int totalIterations = static_cast<int>(_jsonFiles.size());
-            int iterations = 0;
-            for (const auto& pair : _jsonFiles) {
-                if (_jsonParser->ifUtf8(pair.second))
-                {
-                    _jsonParser->convertFileToUtf8(pair.second, contentFileUtf);
-                    _jsonParser->jsonToString(pair.second, reply, contentFileUtf);
-                    _wsManager->sendWsMessage(reply);
-                    // Calculate the progress and update the gauge
-                    const int progress = static_cast<int>((iterations + 1) * 100.0 / totalIterations);
-                    _frame->_fireGauge->SetValue(progress);
-                    iterations++;
-
-                    if (progress != 100)
-                    {
-                        Sleep(2000);
-                    }
-                    else
-                    {
-                        Sleep(500);
-                    }
-
-                }
-                else
-                {
-                    _frame->_consol->SetValue(pair.first + " is not a valid UTF-8 file");
-                    break;
-                }
+            if(_testMode == TestMode::Auto)
+            {
+                autoMode();
+                _frame->_fireButton->Enable();
+                _frame->_fireGauge->SetValue(0);
+                _frame->_fireGauge->Hide();
+            }
+            else if(_testMode == TestMode::Interactive)
+            {
+                _frame->_fireGauge->Hide();
+                _frame->_fireButton->Disable();
+                _jsonFilesMapIndex = 0;
+                interactiveMode(_jsonFilesMapIndex);
             }
             _wsMessageEnabled = false;
         }
-        _frame->_fireButton->Enable();
-        _frame->_fireGauge->SetValue(0);
-        _frame->_fireGauge->Hide();
         Sleep(1000);
+    }
+}
+
+void AppGUI::autoMode()
+{
+    std::string contentFileUtf = "";
+    std::string reply;
+
+    const int totalIterations = static_cast<int>(_jsonFiles.size());
+    int iterations = 0;
+
+    for(unsigned int jsonFileMapIndex = 0; jsonFileMapIndex < _jsonFiles.size(); jsonFileMapIndex++)
+    {
+        for (const auto& pair : _jsonFiles[jsonFileMapIndex]) {
+            if (_jsonParser->ifUtf8(pair.second))
+            {
+                _jsonParser->convertFileToUtf8(pair.second, contentFileUtf);
+                _jsonParser->jsonToString(pair.second, reply, contentFileUtf);
+                _wsManager->sendWsMessage(reply);
+                // Calculate the progress and update the gauge
+                const int progress = static_cast<int>((iterations + 1) * 100.0 / totalIterations);
+                _frame->_fireGauge->SetValue(progress);
+                iterations++;
+
+                if (progress != 100)
+                {
+                    Sleep(2000);
+                }
+                else
+                {
+                    Sleep(500);
+                }
+
+            }
+            else
+            {
+                _frame->_consol->SetValue(pair.first + " is not a valid UTF-8 file");
+                break;
+            }
+        }
+    }
+}
+
+void AppGUI::interactiveMode(const unsigned int indexFile)
+{
+
+    const auto file = _jsonFiles[indexFile].cbegin()->second;
+    if (_jsonParser->ifUtf8(file))
+    {
+        std::string contentFileUtf;
+        std::string reply;
+        _jsonParser->convertFileToUtf8(file, contentFileUtf);
+        _jsonParser->jsonToString(file, reply, contentFileUtf);
+        _wsManager->sendWsMessage(reply);
     }
 }
 
@@ -279,8 +332,7 @@ void AppGUI::onFileSaveClicked()
             {
 
                 // Get file name from full path
-                const wxFileName file(filePath);
-                _fileName = file.GetFullName();
+                _fileName = wxFileName(filePath).GetFullName();
 
                 const wxString text = _frame->_textEditor->GetValue();
                 if (wxFile file(filePath, wxFile::write); file.IsOpened())
@@ -336,9 +388,23 @@ void AppGUI::onTextModified(wxCommandEvent& event)
 
 void AppGUI::onMenuItemAbout(const wxCommandEvent& event)
 {
-    const int menuItemId = event.GetId();
 
-    if (menuItemId == _frame->_menuItemAbout->GetId()) {
+
+
+    if (event.GetId() == _frame->_menuItemAbout->GetId()) {
+
+        //const auto htmlFilePath = "about.html";
+        //std::ifstream file(htmlFilePath);
+        //if (file.is_open()) {
+        //    std::stringstream buffer;
+        //    buffer << file.rdbuf();
+        //    const wxString htmlContent((buffer.str().c_str()), wxConvUTF8); // Convert to wxString with UTF-8 encoding
+        //    _dialogAboutMePage->_htmlPageAbout->SetPage(htmlContent);
+        //    file.close();
+        //}
+        //else {
+        //    wxLogError("Failed to open HTML file: %s", htmlFilePath);
+        //}
 
         // Create the about frame window
         _dialogAbout =  new DialogAbout(nullptr);
@@ -387,6 +453,19 @@ void AppGUI::onMenuItemFire(const wxCommandEvent& event)
          adaptSize(PanelType::Fire);
         _frame->_textEditorPanel->Hide();
         _frame->_fireJsonPanel->Show();
+    }
+}
+
+void AppGUI::onMenuFireItemTestMode(const wxCommandEvent& event)
+{
+    if (event.GetId() == _frame->_menuItemAutoMode->GetId()) 
+    {
+        _frame->_fireButton->Enable();
+        _testMode = TestMode::Auto;
+    }
+    else if (event.GetId() == _frame->_menuItemInteractiveMode->GetId()) 
+    {
+        _testMode = TestMode::Interactive;
     }
 }
 
@@ -470,6 +549,7 @@ void AppGUI::processFireButton(const std::string& folderPath)
     if (std::filesystem::exists(folderPath) && std::filesystem::is_directory(folderPath)) {
         _jsonFiles.clear();
         // Iterate over the files in the folder
+        int jsonFilesIndex = 0;
         for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
             // Check if the file has a .json extension
             if (entry.path().extension() == ".json") {
@@ -477,8 +557,9 @@ void AppGUI::processFireButton(const std::string& folderPath)
                 std::string filenameWithoutExtension = entry.path().stem().string();
 
                 // Store the filename and full path in the map
-                _jsonFiles[filenameWithoutExtension] = entry.path().string();
+                _jsonFiles[jsonFilesIndex][filenameWithoutExtension] = entry.path().string();
             }
+            jsonFilesIndex++;
         }
     }
     else {
