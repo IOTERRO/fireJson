@@ -24,6 +24,7 @@
 #include <wx/image.h>
 #include <wx/icon.h>
 #include <wx/gauge.h>
+#include <wx/statbmp.h>
 #include <wx/menu.h>
 #include <wx/frame.h>
 #include <wx/dialog.h>
@@ -71,6 +72,8 @@ class FrameMain : public wxFrame
 		wxTextCtrl* _wsPortNumber;
 		wxButton* _fireButton;
 		wxGauge* _fireGauge;
+		wxStaticBitmap* _wsStateIndicator;
+		wxStaticText* _wsStatusLabel;
 		wxTextCtrl* _consol;
 		wxMenu* _menuFile;
 		wxMenuItem* _menuItemFileNew;

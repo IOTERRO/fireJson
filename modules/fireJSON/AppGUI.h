@@ -7,7 +7,7 @@
 #include "webSocketManager.h"
 #include "myJson.h"
 
-class AppGUI final : public wxApp, public wxWindow
+class AppGUI final : public wxApp, public wxWindow, public wxEvtHandler
 {
 public:
     AppGUI();
@@ -15,22 +15,37 @@ public:
 
     bool OnInit() override;
     int OnExit() override;
+    void OnSize(wxSizeEvent& event);
+    void OnMaximize(wxMaximizeEvent& event);
+    void OnFullScreen(wxFullScreenEvent& event);
+    void OnIconize(wxIconizeEvent& event);
 
 private:
 
     void notifyMe(const std::string& msg);
     void doWork();
     void onMessageDoWork();
+
     void autoMode();
     void interactiveMode(const unsigned int indexFile);
 
-    //Adapt the size of the panels
-    enum class PanelType
+    enum class WsStatusIndicator
     {
-        Fire,
-        Editor
+        Connected,
+        Disconnected
     };
-    void adaptSize(PanelType type) const;
+    void setWsIndicator(const WsStatusIndicator& status) const;
+
+    bool isAppAlreadyRunning();
+
+    //Adapt the size of the panels
+    enum class AdaptType
+    {
+        FirePanel,
+        EditorPanel,
+        FireGauge
+    };
+    void adaptSize(AdaptType type) const;
 
     //File menu
     void onMenuItemFile(const wxCommandEvent& event);
@@ -42,9 +57,9 @@ private:
     //About menu
     void onMenuItemAbout(const wxCommandEvent& event);
     //Edit menu
-    void onMenuItemEdit(const wxCommandEvent& event);
+    void onMenuItemEdit(const wxCommandEvent& event) const;
     //Fire menu
-    void onMenuItemFire(const wxCommandEvent& event);
+    void onMenuItemFire(const wxCommandEvent& event) const;
     void onMenuFireItemTestMode(const wxCommandEvent& event);
 
     //Ws url
@@ -57,6 +72,9 @@ private:
 
     //Triggered text editing on editor
     void onTextModified(wxCommandEvent& event);
+
+    //terminate app
+    unsigned int killApp();
 
     FrameMain* _frame = nullptr;
     DialogAbout* _dialogAbout = nullptr;
@@ -76,6 +94,8 @@ private:
     std::string _wsUrl;
     std::string _wsPort;
     std::string _wsMessage;
+    AsyncWebSocketServer::WsStatus _wsStatus;
+    AsyncWebSocketServer::WsStatus _previousWsStatus;
 
     //JSON files map
     std::map<unsigned int, std::map<std::string, std::string>>_jsonFiles;// A map to store the JSON file names

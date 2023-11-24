@@ -8,8 +8,17 @@
 #include <fstream>
 
 #include "wx/filedlg.h"
+#include <wx/image.h>
 
 wxIMPLEMENT_APP(AppGUI);
+
+#ifdef _DEBUG
+#define GREEN_INDICATOR "../../modules/fireJSON/images/green-ind.png"
+#define RED_INDICATOR   "../../modules/fireJSON/images/red-ind.png"
+#else
+#define GREEN_INDICATOR "images/green-ind.png"
+#define RED_INDICATOR   "images/red-ind.png"
+#endif
 
 AppGUI::AppGUI():
     _fileName("*Untitled..."),
@@ -19,7 +28,9 @@ AppGUI::AppGUI():
     _isWsUrlValid(false),
     _isWsPortValid(false),
     _wsMessageEnabled(false),
-    _threadSafe(true)
+    _threadSafe(true),
+    _wsStatus(AsyncWebSocketServer::WsStatus::Unknown),
+    _previousWsStatus(AsyncWebSocketServer::WsStatus::Unknown)
 {
     _jsonParser = std::make_shared<MyJSON>();
 }
@@ -34,10 +45,11 @@ AppGUI::~AppGUI()
 
     _thread.interrupt();
 
-    // Attendez que le thread se termine
     if (_thread.joinable()) {
         _thread.join();
     }
+
+    (void)killApp();
 }
 
 bool AppGUI::OnInit()
@@ -48,6 +60,16 @@ bool AppGUI::OnInit()
         return false;
     }
 
+    if (isAppAlreadyRunning()) {
+        // The application is already running.
+        MessageBoxA(nullptr, "Another instance of the application is already running.", "Erreur", MB_OK | MB_ICONERROR);
+        OnExit();
+        return false;
+    }
+
+    EVT_SIZE(AppGUI::OnSize)
+    wxImage::AddHandler(new wxPNGHandler);
+
     // Create the main frame window
     _frame       = new FrameMain(nullptr);
     _frame->_textEditor->Hide();
@@ -56,8 +78,9 @@ bool AppGUI::OnInit()
     _frame->_textEditorPanel->Hide();
     _frame->_fireJsonPanel->Show();
 
+    //_frame->_fireGauge->Hide();
+    _frame->_fireGauge->Show(false);
     _frame->_fireGauge->SetRange(100);
-    _frame->_fireGauge->Hide();
 
     //_dialogAboutMePage = new AboutMePage(this, wxID_ANY, "About Me", wxDefaultPosition, wxSize(400, 300), wxDEFAULT_DIALOG_STYLE);
 
@@ -98,6 +121,7 @@ bool AppGUI::OnInit()
      _frame->_fireButton->Bind(wxEVT_BUTTON, [&](const wxCommandEvent&)
                               {
 
+                                  adaptSize(AdaptType::FireGauge);
                                   _frame->_consol->SetValue("");
                                   if(!_filePath.empty())
                                   {
@@ -117,6 +141,11 @@ bool AppGUI::OnInit()
                                   _wsMessageEnabled = true;
                               });
 
+
+     //_frame->Bind(wxEVT_SIZE, &AppGUI::OnSize, this);
+     //_frame->Bind(wxEVT_MAXIMIZE, &AppGUI::OnMaximize, this);
+     //_frame->Bind(wxEVT_ICONIZE, &AppGUI::OnIconize, this);
+
     _frame->Show();
     return true;
 }
@@ -124,6 +153,22 @@ bool AppGUI::OnInit()
 int AppGUI::OnExit()
 {
     return wxApp::OnExit();
+}
+
+void AppGUI::OnSize(wxSizeEvent& event)
+{
+   // _frame->_fireGauge->Show();
+    
+}
+
+void AppGUI::OnMaximize(wxMaximizeEvent& event)
+{
+    //_frame->_fireGauge->Show();
+}
+
+void AppGUI::OnIconize(wxIconizeEvent& event)
+{
+    
 }
 
 void AppGUI::notifyMe(const std::string& msg)
@@ -149,7 +194,19 @@ void AppGUI::doWork()
     //ws://127.0.0.1:5000/ws
     _wsManager = std::make_shared<WebSocketManager>(_wsUrl, _wsPort, [this](std::string msg) {
         notifyMe(std::move(msg));
+        }, [this](AsyncWebSocketServer::WsStatus status)
+        {
+            if(status == AsyncWebSocketServer::WsStatus::ClientConnected)
+            {
+                _wsStatus = AsyncWebSocketServer::WsStatus::ClientConnected;
+            }
+            else if(status == AsyncWebSocketServer::WsStatus::ClientDisconnected)
+            {
+                _wsStatus = AsyncWebSocketServer::WsStatus::ClientDisconnected;
+            }
         });
+
+    Sleep(1000);
     _wsManager->createAsyncWebSocketServer();
 }
 
@@ -160,23 +217,45 @@ void AppGUI::onMessageDoWork()
         if(_wsMessageEnabled)
         {
             _frame->_fireButton->Disable();
-            _frame->_fireGauge->Show();
+            //_frame->_fireGauge->Show();
+            _frame->_fireGauge->Show(true);
 
             if(_testMode == TestMode::Auto)
             {
                 autoMode();
                 _frame->_fireButton->Enable();
                 _frame->_fireGauge->SetValue(0);
-                _frame->_fireGauge->Hide();
+                //_frame->_fireGauge->Hide();
+                _frame->_fireGauge->Show(false);
             }
             else if(_testMode == TestMode::Interactive)
             {
-                _frame->_fireGauge->Hide();
+                /*_frame->_fireGauge->Hide();
                 _frame->_fireButton->Disable();
                 _jsonFilesMapIndex = 0;
-                interactiveMode(_jsonFilesMapIndex);
+                interactiveMode(_jsonFilesMapIndex);*/
             }
             _wsMessageEnabled = false;
+        }
+
+        if(_previousWsStatus != _wsStatus)
+        {
+            if (_wsStatus == AsyncWebSocketServer::WsStatus::ClientConnected)
+            {
+                _previousWsStatus = _wsStatus;
+                setWsIndicator(WsStatusIndicator::Connected);
+                _frame->_wsStatusLabel->SetLabel("Client Connected...");
+                Sleep(1000);
+                _frame->_wsStatusLabel->SetLabel("");
+            }
+            else if (_wsStatus == AsyncWebSocketServer::WsStatus::ClientDisconnected)
+            {
+                _previousWsStatus = _wsStatus;
+                setWsIndicator(WsStatusIndicator::Disconnected);
+                _frame->_wsStatusLabel->SetLabel("Client Disconnected...");
+                Sleep(1000);
+                _frame->_wsStatusLabel->SetLabel("");
+            }
         }
         Sleep(1000);
     }
@@ -236,18 +315,53 @@ void AppGUI::interactiveMode(const unsigned int indexFile)
     }
 }
 
-void AppGUI::adaptSize(const PanelType type) const
+void AppGUI::setWsIndicator(const WsStatusIndicator& status) const
+{
+    if(status == WsStatusIndicator::Connected)
+    {
+        _frame->_wsStateIndicator->SetBitmap(wxBitmap(wxImage(GREEN_INDICATOR, wxBITMAP_TYPE_PNG)));
+    }
+    else
+    {
+        _frame->_wsStateIndicator->SetBitmap(wxBitmap(wxImage(RED_INDICATOR, wxBITMAP_TYPE_PNG)));
+    }
+}
+
+bool AppGUI::isAppAlreadyRunning()
+{
+    const HANDLE mutexHandle = CreateMutex(nullptr, TRUE, reinterpret_cast<LPCWSTR>("FireJsonMutex"));
+
+    if (GetLastError() == ERROR_ALREADY_EXISTS)
+    {
+        std::cerr << "Another instance of the application is already running." << std::endl;
+        CloseHandle(mutexHandle);
+        return true;
+    }
+
+    return false;
+}
+
+void AppGUI::adaptSize(const AdaptType type) const
 {
     int w, h;
-    if(type == PanelType::Fire)
+    if(type == AdaptType::FirePanel)
     {
         _frame->_textEditorPanel->GetSize(&w, &h);
         _frame->_fireJsonPanel->SetSize(w, h);
     }
-    else if(type == PanelType::Editor)
+    else if(type == AdaptType::EditorPanel)
     {
         _frame->_fireJsonPanel->GetSize(&w, &h); 
         _frame->_textEditorPanel->SetSize(w, h);
+    }
+    else if(type == AdaptType::FireGauge)
+    {
+
+        //_frame->_fireButton->GetSize(&w, &h);
+        
+        /*_frame->_fireGauge->GetSize(&w, &h);
+        //_frame->_fireGauge->SetSize(w, h);
+        //_frame->_fireGauge->Refresh();*/
     }
 }
 
@@ -283,13 +397,11 @@ void AppGUI::onFileNewClicked()
     _frame->_textEditorPanel->Show();
     _frame->_fireJsonPanel->Hide();
 
-    adaptSize(PanelType::Editor);
-
+    adaptSize(AdaptType::EditorPanel);
 }
 
 void AppGUI::onFileOpenClicked()
 {
-    adaptSize(PanelType::Editor);
     if (const wxString filePath = wxFileSelector("Open JSON File", "", "", "", "JSON Files (*.json)|*.json", wxFD_OPEN); !filePath.empty())
     {
         // Read the contents of the selected file
@@ -318,6 +430,8 @@ void AppGUI::onFileOpenClicked()
             _frame->_fireJsonPanel->Hide();
         }
     }
+
+    adaptSize(AdaptType::EditorPanel);
 }
 
 void AppGUI::onFileSaveClicked()
@@ -386,11 +500,30 @@ void AppGUI::onTextModified(wxCommandEvent& event)
     }
 }
 
-void AppGUI::onMenuItemAbout(const wxCommandEvent& event)
+unsigned int AppGUI::killApp()
 {
 
+    // Get a handle from the process
+    const HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, GetCurrentProcessId());
 
+    if (hProcess == nullptr) {
+        std::cerr << "Error opening process:" << GetLastError() << std::endl;
+        return 1;
+    }
 
+    // Termine le processus
+    if (!TerminateProcess(hProcess, 0)) {
+        std::cerr << "Error terminating process: " << GetLastError() << std::endl;
+        return 1;
+    }
+    // Close the process handle
+    CloseHandle(hProcess);
+
+    return 0;
+}
+
+void AppGUI::onMenuItemAbout(const wxCommandEvent& event)
+{
     if (event.GetId() == _frame->_menuItemAbout->GetId()) {
 
         //const auto htmlFilePath = "about.html";
@@ -421,7 +554,7 @@ void AppGUI::onMenuItemAbout(const wxCommandEvent& event)
     }
 }
 
-void AppGUI::onMenuItemEdit(const wxCommandEvent& event)
+void AppGUI::onMenuItemEdit(const wxCommandEvent& event) const
 {
     if (event.GetId() == _frame->_menuItemEditUndo->GetId()) {
         _frame->_textEditor->Undo();
@@ -447,10 +580,10 @@ void AppGUI::onMenuItemEdit(const wxCommandEvent& event)
     }
 }
 
-void AppGUI::onMenuItemFire(const wxCommandEvent& event)
+void AppGUI::onMenuItemFire(const wxCommandEvent& event) const
 {
     if (event.GetId() == _frame->_menuItemFire->GetId()) {
-         adaptSize(PanelType::Fire);
+         adaptSize(AdaptType::FirePanel);
         _frame->_textEditorPanel->Hide();
         _frame->_fireJsonPanel->Show();
     }
@@ -463,9 +596,14 @@ void AppGUI::onMenuFireItemTestMode(const wxCommandEvent& event)
         _frame->_fireButton->Enable();
         _testMode = TestMode::Auto;
     }
-    else if (event.GetId() == _frame->_menuItemInteractiveMode->GetId()) 
+    else if (event.GetId() == _frame->_menuItemInteractiveMode->GetId())
     {
         _testMode = TestMode::Interactive;
+        //_frame->_fireGauge->Hide();
+        _frame->_fireGauge->Show(false);
+        _frame->_fireButton->Disable();
+        _jsonFilesMapIndex = 0;
+        interactiveMode(_jsonFilesMapIndex);
     }
 }
 
@@ -563,6 +701,6 @@ void AppGUI::processFireButton(const std::string& folderPath)
         }
     }
     else {
-        std::cout << "Default folder does not exist or is not a directory." << std::endl;
+        _frame->_consol->SetValue("Default folder does not exist.\nPlease add \"JsonTest\" default folder. \nOr click ctrl+O to choose another one.");
     }
 }

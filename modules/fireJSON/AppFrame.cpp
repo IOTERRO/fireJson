@@ -20,6 +20,8 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	bSizerFrameMain = new wxBoxSizer( wxVERTICAL );
 
 	_textEditorPanel = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
+	_textEditorPanel->Hide();
+
 	wxBoxSizer* bSizer27;
 	bSizer27 = new wxBoxSizer( wxVERTICAL );
 
@@ -37,8 +39,6 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	bSizerFrameMain->Add( _textEditorPanel, 1, wxEXPAND | wxALL, 0 );
 
 	_fireJsonPanel = new wxPanel( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-	_fireJsonPanel->Hide();
-
 	wxBoxSizer* bSizer22;
 	bSizer22 = new wxBoxSizer( wxVERTICAL );
 
@@ -97,8 +97,8 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	wxBoxSizer* bSizer10;
 	bSizer10 = new wxBoxSizer( wxVERTICAL );
 
-
-	bSizer10->Add( 0, 0, 0, wxALL, 30 );
+	wxGridSizer* gSizer1;
+	gSizer1 = new wxGridSizer( 2, 0, 0, 0 );
 
 	_fireButton = new wxButton( _fireJsonPanel, wxID_ANY, _("Fire"), wxDefaultPosition, wxSize( 100,50 ), 0 );
 	_fireButton->SetFont( wxFont( 12, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, wxT("Arial") ) );
@@ -106,14 +106,27 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	_fireButton->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_BTNSHADOW ) );
 	_fireButton->Enable( false );
 
-	bSizer10->Add( _fireButton, 0, wxALIGN_CENTER, 0 );
+	gSizer1->Add( _fireButton, 0, wxALIGN_CENTER, 0 );
 
-
-	bSizer10->Add( 0, 0, 1, wxEXPAND, 5 );
-
-	_fireGauge = new wxGauge( _fireJsonPanel, wxID_ANY, 100, wxPoint( -1,-1 ), wxSize( 80,-1 ), wxGA_HORIZONTAL );
+	_fireGauge = new wxGauge( _fireJsonPanel, wxID_ANY, 100, wxDefaultPosition, wxSize( 80,-1 ), wxGA_HORIZONTAL );
 	_fireGauge->SetValue( 0 );
-	bSizer10->Add( _fireGauge, 0, wxALIGN_CENTER|wxALL, 10 );
+	gSizer1->Add( _fireGauge, 1, wxALIGN_CENTER|wxALL|wxBOTTOM, 20 );
+
+
+	bSizer10->Add( gSizer1, 0, wxEXPAND, 0 );
+
+	wxBoxSizer* bSizer151;
+	bSizer151 = new wxBoxSizer( wxHORIZONTAL );
+
+	_wsStateIndicator = new wxStaticBitmap( _fireJsonPanel, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( 48,48 ), 0 );
+	bSizer151->Add( _wsStateIndicator, 0, wxALIGN_CENTER|wxALL, 5 );
+
+	_wsStatusLabel = new wxStaticText( _fireJsonPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	_wsStatusLabel->Wrap( -1 );
+	bSizer151->Add( _wsStatusLabel, 1, wxALIGN_CENTER|wxALL, 0 );
+
+
+	bSizer10->Add( bSizer151, 1, wxALL, 5 );
 
 
 	bSizer7->Add( bSizer10, 1, wxEXPAND, 0 );

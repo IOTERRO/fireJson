@@ -10,9 +10,12 @@
 static bool MessagesState = ENABLE_SEND_MESSAGES;
 static std::string ReplyMessages;
 
-WebSocketSession::WebSocketSession(Tcp::socket socket, std::function<void(std::string)> onMessage):
+WebSocketSession::WebSocketSession(Tcp::socket socket, std::function<void(std::string)> onMessage,
+                                   std::function<void(AsyncWebSocketServer::WsStatus)> onWsStatus):
     _socket(std::move(socket)),
-    _onMessage(std::move(onMessage))
+    _onMessage(std::move(onMessage)),
+    _onWsStatus(std::move(onWsStatus))
+
 {
 }
 
@@ -31,31 +34,54 @@ void WebSocketSession::start()
     const boost::asio::ip::tcp::endpoint remoteEp = _socket.remote_endpoint();
     const std::string clienIp = remoteEp.address().to_string();
     std::cout << "Client " << clienIp << " connected" << std::endl;
-
-    // Receive and process WebSocket messages
-    while (true)
+    try
     {
-        // Receive WebSocket message
-        beast::multi_buffer buffer;
-
-        //ws.read(buffer);
-        if (ws.next_layer().available() > 0) {
-            ws.read(buffer);
-            const std::string message = boost::beast::buffers_to_string(buffer.data());
-            _onMessage(message);
-            //std::cout << "Receive WebSocket message: " << message << std::endl;
-        }
-        // Echo WebSocket message back to client
-        ws.text(true);
-        if (MessagesState == ENABLE_SEND_MESSAGES)
+        // Receive and process WebSocket messages
+        while (true)
         {
-            ws.write(boost::asio::buffer(ReplyMessages));
-            MessagesState = DISABLE_SEND_MESSAGES;
+            // Receive WebSocket message
+            beast::multi_buffer buffer;
+
+            //ws.read(buffer);
+            if (ws.next_layer().available() > 0) {
+                ws.read(buffer);
+                const std::string message = boost::beast::buffers_to_string(buffer.data());
+                _onMessage(message);
+                //std::cout << "Receive WebSocket message: " << message << std::endl;
+            }
+            // Echo WebSocket message back to client
+            ws.text(true);
+            if (MessagesState == ENABLE_SEND_MESSAGES)
+            {
+                ws.write(boost::asio::buffer(ReplyMessages));
+                MessagesState = DISABLE_SEND_MESSAGES;
+            }
         }
     }
+    catch (const boost::system::system_error& e)
+    {
+        if (e.code() == websocket::error::closed)
+        {
+            // WebSocket connection closed by the client
+            _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected);
+            const boost::asio::ip::tcp::endpoint remoteEp = _socket.remote_endpoint();
+            const std::string clienIp = remoteEp.address().to_string();
+            std::cout << "Client " << clienIp << " disconnected" << std::endl;
+        }
+        else
+        {
+            // Handle other WebSocket-related errors
+            std::cerr << "WebSocket error: " << e.what() << std::endl;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        // Handle other exceptions
+        std::cerr << "Exception in WebSocket session: " << e.what() << std::endl;
+    }
 
-    // Close WebSocket connection
-    //ws.close(websocket::close_code::normal);
+    // Close WebSocket connection (if not closed already)
+    ws.close(websocket::close_code::normal);
 }
 
 
@@ -70,9 +96,10 @@ void WebSocketSession::readMessage(Tcp::socket socket)
 
 
 
-AsyncWebSocketServer::AsyncWebSocketServer(std::function<void(std::string)> onMessage, boost::asio::io_context& io_context, const std::string& address, const short port) :
+AsyncWebSocketServer::AsyncWebSocketServer(std::function<void(std::string)> onMessage, boost::asio::io_context& io_context, const std::string& address, const short port, std::function<void(WsStatus)> onWsStatus) :
     _acceptor(io_context, Tcp::endpoint(boost::asio::ip::make_address(address), port)),
-    _onMessage(std::move(onMessage))
+    _onMessage(std::move(onMessage)),
+    _onWsStatus(std::move(onWsStatus))
 {
     std::cout << "Server started on port " << port << std::endl;
     startAccept();
@@ -95,6 +122,8 @@ void AsyncWebSocketServer::startAccept()
         {
             if (!ec)
             {
+                _onWsStatus(WsStatus::ClientConnected); //TODO ???
+
                 // Start a new thread to handle the WebSocket session
                 boost::thread{ [s = std::move(socket), this] ()
                 {
@@ -115,6 +144,12 @@ void AsyncWebSocketServer::handleClients(Tcp::socket socket) const
 {
     WebSocketSession session(std::move(socket), [this](const std::string& msg) {
         subscribeForNewMessage(msg);
+        }, [&](const WsStatus status)
+        {
+            if(status == WsStatus::ClientDisconnected)
+            {
+                _onWsStatus(WsStatus::ClientDisconnected);
+            }
         });
 
     try

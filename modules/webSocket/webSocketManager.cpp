@@ -8,8 +8,9 @@ using namespace boost;
 static asio::io_context ioContext;
 
 
-WebSocketManager::WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage):
+WebSocketManager::WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage, std::function<void(AsyncWebSocketServer::WsStatus)> onWsStatus):
     _onMessage(std::move(onMessage)),
+    _onWsStatus(onWsStatus),
     _host(std::move(host)),
     _port(static_cast<unsigned short>(std::stoi(port)))
 {
@@ -32,21 +33,33 @@ WebSocketManager::~WebSocketManager()
 void WebSocketManager::createSyncWebSocketServer()
 {
     auto address = net::ip::make_address(_host);
-     _mySyncServer = std::make_shared<SyncWebSocketServer>(address, _port, _serverReplyMessage);
-     _mySyncServer->createWebSocketServer();
+    _mySyncServer = std::make_shared<SyncWebSocketServer>(address, _port, _serverReplyMessage);
+    _mySyncServer->createWebSocketServer();
 } 
 
 void WebSocketManager::createAsyncWebSocketServer()
 {
     try
     {
-        _myAsyncServer = std::make_shared<AsyncWebSocketServer>([this](std::string msg) {
+        _myAsyncServer = std::make_shared<AsyncWebSocketServer>([this](const std::string& msg) {
             subscribeForNewMessage(msg);
-            }, ioContext, _host, _port);
+            }, ioContext, _host, _port, [this](const AsyncWebSocketServer::WsStatus status)
+            {
+                if (status == AsyncWebSocketServer::WsStatus::ClientConnected)
+                {
+                    _onWsStatus(AsyncWebSocketServer::WsStatus::ClientConnected);
+                }
+                else if (status == AsyncWebSocketServer::WsStatus::ClientDisconnected)
+                {
+                    _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected);
+                }
+                //wsStatus(status);
+            });
         ioContext.run();
     }
     catch (std::exception& e)
     {
+        auto what = e.what();
         std::cerr << "Exception: " << e.what() << std::endl;
     }
 }
@@ -76,6 +89,18 @@ int WebSocketManager::webSocketClient()
 void WebSocketManager::subscribeForNewMessage(const std::string& msg) const
 {
     _onMessage(msg);
+}
+
+void WebSocketManager::wsStatus(const AsyncWebSocketServer::WsStatus status)
+{
+    if (status == AsyncWebSocketServer::WsStatus::ClientConnected)
+    {
+        _onWsStatus(AsyncWebSocketServer::WsStatus::ClientConnected);
+    }
+    else if (status == AsyncWebSocketServer::WsStatus::ClientDisconnected)
+    {
+        _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected);
+    }
 }
 
 void WebSocketManager::sendWsMessage(const std::string& msg) const
