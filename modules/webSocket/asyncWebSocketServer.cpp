@@ -1,8 +1,13 @@
 #include <iostream>
 #include <boost/thread/thread.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/erase.hpp>
 #include <utility>
+#include <random>
 
 #include "asyncWebSocketServer.h"
+
+#include <iomanip>
 
 #define ENABLE_SEND_MESSAGES  true
 #define DISABLE_SEND_MESSAGES false
@@ -10,9 +15,20 @@
 static bool MessagesState = ENABLE_SEND_MESSAGES;
 static std::string ReplyMessages;
 
-WebSocketSession::WebSocketSession(Tcp::socket socket, std::function<void(std::string)> onMessage,
-                                   std::function<void(AsyncWebSocketServer::WsStatus)> onWsStatus):
+
+unsigned AsyncWebSocketServer::getRandomUnsignedInt()
+{
+    // Using a pseudo-random number generator
+    std::random_device rd; // Used to obtain a random seed from the system
+    std::mt19937 gen(rd()); // Mersenne Twister 32-bit generator
+    std::uniform_int_distribution<unsigned int> dis;
+
+    return dis(gen); // Returns a random value of type unsigned int
+}
+WebSocketSession::WebSocketSession(Tcp::socket socket, AsyncWebSocketServer::ClientInfo clientInfo, std::function<void(std::string)> onMessage,
+                                   std::function<void(AsyncWebSocketServer::WsStatus, AsyncWebSocketServer::ClientInfo)> onWsStatus):
     _socket(std::move(socket)),
+    _clientInfo(std::move(clientInfo)),
     _onMessage(std::move(onMessage)),
     _onWsStatus(std::move(onWsStatus))
 
@@ -63,10 +79,10 @@ void WebSocketSession::start()
         if (e.code() == websocket::error::closed)
         {
             // WebSocket connection closed by the client
-            _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected);
-            const boost::asio::ip::tcp::endpoint remoteEp = _socket.remote_endpoint();
-            const std::string clienIp = remoteEp.address().to_string();
-            std::cout << "Client " << clienIp << " disconnected" << std::endl;
+            _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected, _clientInfo);
+            //const boost::asio::ip::tcp::endpoint remoteEp = _socket.remote_endpoint();
+            //const std::string clienIp = remoteEp.address().to_string();
+            std::cout << "Client " << _clientInfo.ip << " disconnected" << std::endl;
         }
         else
         {
@@ -96,7 +112,7 @@ void WebSocketSession::readMessage(Tcp::socket socket)
 
 
 
-AsyncWebSocketServer::AsyncWebSocketServer(std::function<void(std::string)> onMessage, boost::asio::io_context& io_context, const std::string& address, const short port, std::function<void(WsStatus)> onWsStatus) :
+AsyncWebSocketServer::AsyncWebSocketServer(std::function<void(std::string)> onMessage, boost::asio::io_context& io_context, const std::string& address, const short port, std::function<void(WsStatus, ClientInfo)> onWsStatus) :
     _acceptor(io_context, Tcp::endpoint(boost::asio::ip::make_address(address), port)),
     _onMessage(std::move(onMessage)),
     _onWsStatus(std::move(onWsStatus))
@@ -116,18 +132,93 @@ AsyncWebSocketServer::~AsyncWebSocketServer()
 
 }
 
+std::string AsyncWebSocketServer::getMacAddress()
+{
+    // Use boost::asio to retrieve the MAC address of the first network interface
+    boost::asio::io_context io_context;
+    boost::asio::ip::tcp::resolver resolver(io_context);
+    boost::asio::ip::tcp::resolver::query query(boost::asio::ip::host_name(), "");
+    boost::asio::ip::tcp::resolver::iterator iter = resolver.resolve(query);
+    boost::asio::ip::tcp::resolver::iterator end; // End marker.
+
+    while (iter != end)
+    {
+        boost::asio::ip::tcp::endpoint endpoint = *iter++;
+        std::string addressString = endpoint.address().to_string();
+
+        // Remove any characters that are not hexadecimal digits
+        boost::erase_all(addressString, ":");
+        boost::erase_all(addressString, ".");
+
+        // If the resulting string is longer than 12 characters, trim it
+        if (addressString.length() > 12)
+        {
+            addressString = addressString.substr(0, 12);
+        }
+
+        // Convert the string to uppercase
+        boost::to_upper(addressString);
+
+        // Format the MAC address with colons
+        std::ostringstream macAddress;
+        for (std::size_t i = 0; i < addressString.length(); i += 2)
+        {
+            macAddress << addressString.substr(i, 2);
+            if (i < addressString.length() - 2)
+            {
+                macAddress << ":";
+            }
+        }
+
+        return macAddress.str();
+    }
+
+    return ""; // Return an empty string if MAC address is not found
+}
+
+unsigned AsyncWebSocketServer::getClientId()
+{
+    // Use the MAC address as a fixed identifier for each client
+    std::string macAddress = getMacAddress();
+    std::hash<std::string> hasher;
+    return hasher(macAddress);
+}
+
+
 void AsyncWebSocketServer::startAccept()
 {
     _acceptor.async_accept([this](boost::system::error_code ec, Tcp::socket socket)
         {
             if (!ec)
             {
-                _onWsStatus(WsStatus::ClientConnected); //TODO ???
+
+                Sleep(500);
+
+                // Generate a random unsigned int
+                unsigned int id = getRandomUnsignedInt();
+                std::string clientKey = "client_" + std::to_string(id);
+                // Keep generating a new id until it is unique
+                while (_clientsConnectionMap.find(clientKey) != _clientsConnectionMap.end()) {
+                    id = getRandomUnsignedInt();
+                    clientKey = "client_" + std::to_string(id);
+                }
+
+                // Add the new id to the map
+                _clientsConnectionMap[clientKey] = id;
+
+                const boost::asio::ip::tcp::endpoint remoteEp = socket.remote_endpoint();
+                const std::string clientIp = "";//remoteEp.address().to_string();
+                ClientInfo clientInfo;
+                clientInfo.ip = clientIp;
+                clientInfo.id = _clientsConnectionMap.at(clientKey);
+                clientInfo.clientsCount = _clientsConnectionMap.size();
+
+                _onWsStatus(WsStatus::ClientConnected, clientInfo);
 
                 // Start a new thread to handle the WebSocket session
-                boost::thread{ [s = std::move(socket), this] ()
+                boost::thread{ [&, s = std::move(socket), this] ()
                 {
-                    handleClients(std::move(const_cast<Tcp::socket&>(s)));
+                    handleClients(std::move(const_cast<Tcp::socket&>(s)), clientInfo);
                 } }.detach();
 
                 // Continue accepting new connections
@@ -140,15 +231,17 @@ void AsyncWebSocketServer::startAccept()
         });
 }
 
-void AsyncWebSocketServer::handleClients(Tcp::socket socket) const
+void AsyncWebSocketServer::handleClients(Tcp::socket socket, const ClientInfo& clientInfo)
 {
-    WebSocketSession session(std::move(socket), [this](const std::string& msg) {
+    WebSocketSession session(std::move(socket), clientInfo, [this](const std::string& msg) {
         subscribeForNewMessage(msg);
-        }, [&](const WsStatus status)
+        }, [&](const WsStatus status, ClientInfo& info)
         {
             if(status == WsStatus::ClientDisconnected)
             {
-                _onWsStatus(WsStatus::ClientDisconnected);
+                removeClient(info.id);
+                info.clientsCount = _clientsConnectionMap.size();
+                _onWsStatus(WsStatus::ClientDisconnected, info);
             }
         });
 
@@ -166,6 +259,20 @@ void AsyncWebSocketServer::handleClients(Tcp::socket socket) const
 void AsyncWebSocketServer::subscribeForNewMessage(const std::string& msg) const
 {
     _onMessage(msg);
+}
+
+void AsyncWebSocketServer::removeClient(const unsigned id)
+{
+    // Check if the key exists before attempting to remove
+    const auto keyToRemove = "client_" + std::to_string(id);
+    const auto it = _clientsConnectionMap.find(keyToRemove);
+    if (it != _clientsConnectionMap.end()) {
+        // Key found, erase it
+        _clientsConnectionMap.erase(it);
+    }
+    else {
+        // TODO Key not found, handle accordingly
+    }
 }
 
 

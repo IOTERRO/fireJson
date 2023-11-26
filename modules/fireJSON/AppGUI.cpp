@@ -15,22 +15,23 @@ wxIMPLEMENT_APP(AppGUI);
 #ifdef _DEBUG
 #define GREEN_INDICATOR "../../modules/fireJSON/images/green-ind.png"
 #define RED_INDICATOR   "../../modules/fireJSON/images/red-ind.png"
+#define ClEAR_INDICATOR   "../../modules/fireJSON/images/clear.xpm"
 #else
 #define GREEN_INDICATOR "images/green-ind.png"
 #define RED_INDICATOR   "images/red-ind.png"
+#define ClEAR_INDICATOR   "images/clear.xpm"
 #endif
 
 AppGUI::AppGUI():
     _fileName("*Untitled..."),
+    _wsStatus(AsyncWebSocketServer::WsStatus::Unknown),
     _testMode(TestMode::Auto),
     _fileNameEntered(false),
     _fileSaveAllowed(false),
     _isWsUrlValid(false),
     _isWsPortValid(false),
     _wsMessageEnabled(false),
-    _threadSafe(true),
-    _wsStatus(AsyncWebSocketServer::WsStatus::Unknown),
-    _previousWsStatus(AsyncWebSocketServer::WsStatus::Unknown)
+    _threadSafe(true)
 {
     _jsonParser = std::make_shared<MyJSON>();
 }
@@ -69,6 +70,7 @@ bool AppGUI::OnInit()
 
     EVT_SIZE(AppGUI::OnSize)
     wxImage::AddHandler(new wxPNGHandler);
+    wxImage::AddHandler(new wxXPMHandler);
 
     // Create the main frame window
     _frame       = new FrameMain(nullptr);
@@ -122,7 +124,6 @@ bool AppGUI::OnInit()
                               {
 
                                   adaptSize(AdaptType::FireGauge);
-                                  _frame->_consol->SetValue("");
                                   if(!_filePath.empty())
                                   {
                                       std::filesystem::path path(_filePath);
@@ -140,6 +141,13 @@ bool AppGUI::OnInit()
 
                                   _wsMessageEnabled = true;
                               });
+
+    //consol clear button
+     _frame->_consolClearButton->SetBitmap(wxBitmap(wxImage(ClEAR_INDICATOR, wxBITMAP_TYPE_XPM)));
+     _frame->_consolClearButton->Bind(wxEVT_BUTTON, [&](const wxCommandEvent&)
+         {
+             _frame->_consol->Clear();
+         });
 
 
      //_frame->Bind(wxEVT_SIZE, &AppGUI::OnSize, this);
@@ -173,9 +181,14 @@ void AppGUI::OnIconize(wxIconizeEvent& event)
 
 void AppGUI::notifyMe(const std::string& msg)
 {
-   _frame->_consol->SetValue(msg);
+    if (!msg.empty())
+    {
+        writeConsole("Message received: \n"
+                     "-------------------- \n"
+                     + msg);
+    }
 
-    if(_testMode == TestMode::Interactive && _jsonFiles.size() > 0)
+    if(_testMode == TestMode::Interactive && !_jsonFiles.empty())
     {
         _jsonFilesMapIndex++;
         if(_jsonFilesMapIndex < _jsonFiles.size())
@@ -192,16 +205,21 @@ void AppGUI::notifyMe(const std::string& msg)
 void AppGUI::doWork()
 {
     //ws://127.0.0.1:5000/ws
-    _wsManager = std::make_shared<WebSocketManager>(_wsUrl, _wsPort, [this](std::string msg) {
-        notifyMe(std::move(msg));
-        }, [this](AsyncWebSocketServer::WsStatus status)
+    _wsManager = std::make_shared<WebSocketManager>(_wsUrl, _wsPort, [this](const std::string& msg) {
+        notifyMe(msg);
+        }, [this](const AsyncWebSocketServer::WsStatus status, const AsyncWebSocketServer::ClientInfo& info)
         {
+            _clientsNumber = info.clientsCount;
             if(status == AsyncWebSocketServer::WsStatus::ClientConnected)
             {
+                writeConsole("Client " + std::to_string(info.id) + " connected (clients number : " + std::to_string(info.clientsCount) + ")");
+                _clientStatusKey = "client_" + std::to_string(info.id) + "_connected";
                 _wsStatus = AsyncWebSocketServer::WsStatus::ClientConnected;
             }
             else if(status == AsyncWebSocketServer::WsStatus::ClientDisconnected)
             {
+                writeConsole("Client " + std::to_string(info.id) + " disconnected (clients number : " + std::to_string(info.clientsCount) + ")");
+                _clientStatusKey = "client_" + std::to_string(info.id) + "_disconnected";
                 _wsStatus = AsyncWebSocketServer::WsStatus::ClientDisconnected;
             }
         });
@@ -238,27 +256,32 @@ void AppGUI::onMessageDoWork()
             _wsMessageEnabled = false;
         }
 
-        if(_previousWsStatus != _wsStatus)
+        if(_previousClientStatusKey != _clientStatusKey)
         {
+            _previousClientStatusKey = _clientStatusKey;
             if (_wsStatus == AsyncWebSocketServer::WsStatus::ClientConnected)
             {
-                _previousWsStatus = _wsStatus;
                 setWsIndicator(WsStatusIndicator::Connected);
                 _frame->_wsStatusLabel->SetLabel("Client Connected...");
                 Sleep(1000);
                 _frame->_wsStatusLabel->SetLabel("");
             }
-            else if (_wsStatus == AsyncWebSocketServer::WsStatus::ClientDisconnected)
+            else if (_wsStatus == AsyncWebSocketServer::WsStatus::ClientDisconnected && !_clientsNumber)
             {
-                _previousWsStatus = _wsStatus;
                 setWsIndicator(WsStatusIndicator::Disconnected);
-                _frame->_wsStatusLabel->SetLabel("Client Disconnected...");
-                Sleep(1000);
-                _frame->_wsStatusLabel->SetLabel("");
+                _frame->_wsStatusLabel->SetLabel("Not connected...");
             }
         }
         Sleep(1000);
     }
+}
+
+void AppGUI::writeConsole(const std::string& msg) const
+{
+    _frame->_consol->AppendText("\n" + msg + "\n" +
+                                "**************************************************************");
+    // Scroll to the end of the consol
+    _frame->_consol->ShowPosition(_frame->_consol->GetLastPosition());
 }
 
 void AppGUI::autoMode()
@@ -294,7 +317,7 @@ void AppGUI::autoMode()
             }
             else
             {
-                _frame->_consol->SetValue(pair.first + " is not a valid UTF-8 file");
+                writeConsole(pair.first + " is not a valid UTF-8 file");
                 break;
             }
         }
@@ -558,25 +581,41 @@ void AppGUI::onMenuItemEdit(const wxCommandEvent& event) const
 {
     if (event.GetId() == _frame->_menuItemEditUndo->GetId()) {
         _frame->_textEditor->Undo();
+        //_frame->_wsAddressUrl->Undo();
+        //_frame->_wsPortNumber->Undo();
     }
     else if (event.GetId() == _frame->_menuItemEditCut->GetId()) {
         _frame->_textEditor->Cut();
+        //_frame->_wsAddressUrl->Cut();
+        //_frame->_wsPortNumber->Cut();
     }
     else if (event.GetId() == _frame->_menuItemEditCopy->GetId()) {
         _frame->_textEditor->Copy();
+        //_frame->_wsAddressUrl->Copy();
+        //_frame->_wsPortNumber->Copy();
     }
     else if (event.GetId() == _frame->_menuItemEditPaste->GetId()) {
         _frame->_textEditor->Paste();
+        //_frame->_wsAddressUrl->Paste();
+        //_frame->_wsPortNumber->Paste();
     }
     else if (event.GetId() == _frame->_menuItemEditDelete->GetId()) {
         // Delete selected text in the wxTextCtrl
         long from, to;
         _frame->_textEditor->GetSelection(&from, &to);
         _frame->_textEditor->Remove(from, to);
+
+        /*_frame->_wsAddressUrl->GetSelection(&from, &to);
+        _frame->_wsAddressUrl->Remove(from, to);
+
+        _frame->_wsPortNumber->GetSelection(&from, &to);
+        _frame->_wsPortNumber->Remove(from, to);*/
     }
     else if (event.GetId() == _frame->_menuItemEditSelectAll->GetId()) {
         // Select all the text in the wxTextCtrl
         _frame->_textEditor->SetSelection(0, _frame->_textEditor->GetLastPosition());
+        //_frame->_wsAddressUrl->SetSelection(0, _frame->_wsAddressUrl->GetLastPosition());
+        //_frame->_wsPortNumber->SetSelection(0, _frame->_wsPortNumber->GetLastPosition());
     }
 }
 
@@ -701,6 +740,6 @@ void AppGUI::processFireButton(const std::string& folderPath)
         }
     }
     else {
-        _frame->_consol->SetValue("Default folder does not exist.\nPlease add \"JsonTest\" default folder. \nOr click ctrl+O to choose another one.");
+        writeConsole("Default folder does not exist.\nPlease add \"JsonTest\" default folder.\nOr click ctrl+O to choose another one.");
     }
 }

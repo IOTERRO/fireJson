@@ -25,6 +25,7 @@ private:
     void notifyMe(const std::string& msg);
     void doWork();
     void onMessageDoWork();
+    void writeConsole(const std::string& msg) const;
 
     void autoMode();
     void interactiveMode(const unsigned int indexFile);
@@ -94,8 +95,10 @@ private:
     std::string _wsUrl;
     std::string _wsPort;
     std::string _wsMessage;
+    unsigned int _clientsNumber;
+    std::string _clientStatusKey;
+    std::string _previousClientStatusKey;
     AsyncWebSocketServer::WsStatus _wsStatus;
-    AsyncWebSocketServer::WsStatus _previousWsStatus;
 
     //JSON files map
     std::map<unsigned int, std::map<std::string, std::string>>_jsonFiles;// A map to store the JSON file names

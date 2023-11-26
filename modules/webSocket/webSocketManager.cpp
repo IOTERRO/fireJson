@@ -2,15 +2,16 @@
 #include "webSocketManager.h"
 
 #include <string>
+#include <utility>
 
 
 using namespace boost;
 static asio::io_context ioContext;
 
 
-WebSocketManager::WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage, std::function<void(AsyncWebSocketServer::WsStatus)> onWsStatus):
+WebSocketManager::WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage, std::function<void(AsyncWebSocketServer::WsStatus, AsyncWebSocketServer::ClientInfo)> onWsStatus):
     _onMessage(std::move(onMessage)),
-    _onWsStatus(onWsStatus),
+    _onWsStatus(std::move(onWsStatus)),
     _host(std::move(host)),
     _port(static_cast<unsigned short>(std::stoi(port)))
 {
@@ -43,15 +44,15 @@ void WebSocketManager::createAsyncWebSocketServer()
     {
         _myAsyncServer = std::make_shared<AsyncWebSocketServer>([this](const std::string& msg) {
             subscribeForNewMessage(msg);
-            }, ioContext, _host, _port, [this](const AsyncWebSocketServer::WsStatus status)
+            }, ioContext, _host, _port, [this](const AsyncWebSocketServer::WsStatus status, AsyncWebSocketServer::ClientInfo info)
             {
                 if (status == AsyncWebSocketServer::WsStatus::ClientConnected)
                 {
-                    _onWsStatus(AsyncWebSocketServer::WsStatus::ClientConnected);
+                    _onWsStatus(AsyncWebSocketServer::WsStatus::ClientConnected, info);
                 }
                 else if (status == AsyncWebSocketServer::WsStatus::ClientDisconnected)
                 {
-                    _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected);
+                    _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected, info);
                 }
                 //wsStatus(status);
             });
@@ -91,15 +92,15 @@ void WebSocketManager::subscribeForNewMessage(const std::string& msg) const
     _onMessage(msg);
 }
 
-void WebSocketManager::wsStatus(const AsyncWebSocketServer::WsStatus status)
+void WebSocketManager::wsStatus(const AsyncWebSocketServer::WsStatus status, AsyncWebSocketServer::ClientInfo info)
 {
     if (status == AsyncWebSocketServer::WsStatus::ClientConnected)
     {
-        _onWsStatus(AsyncWebSocketServer::WsStatus::ClientConnected);
+        _onWsStatus(AsyncWebSocketServer::WsStatus::ClientConnected, info);
     }
     else if (status == AsyncWebSocketServer::WsStatus::ClientDisconnected)
     {
-        _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected);
+        _onWsStatus(AsyncWebSocketServer::WsStatus::ClientDisconnected, info);
     }
 }
 

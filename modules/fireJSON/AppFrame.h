@@ -74,6 +74,7 @@ class FrameMain : public wxFrame
 		wxGauge* _fireGauge;
 		wxStaticBitmap* _wsStateIndicator;
 		wxStaticText* _wsStatusLabel;
+		wxButton* _consolClearButton;
 		wxTextCtrl* _consol;
 		wxMenu* _menuFile;
 		wxMenuItem* _menuItemFileNew;

@@ -43,14 +43,14 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	bSizer22 = new wxBoxSizer( wxVERTICAL );
 
 	wxBoxSizer* bSizer24;
-	bSizer24 = new wxBoxSizer( wxVERTICAL );
+	bSizer24 = new wxBoxSizer( wxHORIZONTAL );
 
-	m_staticText6 = new wxStaticText( _fireJsonPanel, wxID_ANY, _("FireJSON"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText6 = new wxStaticText( _fireJsonPanel, wxID_ANY, _("FireJSON"), wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL );
 	m_staticText6->Wrap( -1 );
 	m_staticText6->SetFont( wxFont( 18, wxFONTFAMILY_MODERN, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_BOLD, false, wxT("Courier New") ) );
 	m_staticText6->SetForegroundColour( wxColour( 0, 0, 160 ) );
 
-	bSizer24->Add( m_staticText6, 0, wxALIGN_CENTER|wxALL, 8 );
+	bSizer24->Add( m_staticText6, 1, wxALIGN_CENTER, 5 );
 
 
 	bSizer22->Add( bSizer24, 0, wxEXPAND, 0 );
@@ -60,6 +60,9 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 
 	wxBoxSizer* bSizer7;
 	bSizer7 = new wxBoxSizer( wxVERTICAL );
+
+
+	bSizer7->Add( 0, 0, 0, wxALL|wxEXPAND, 10 );
 
 	wxBoxSizer* bSizer8;
 	bSizer8 = new wxBoxSizer( wxHORIZONTAL );
@@ -137,8 +140,12 @@ FrameMain::FrameMain( wxWindow* parent, wxWindowID id, const wxString& title, co
 	wxBoxSizer* bSizer15;
 	bSizer15 = new wxBoxSizer( wxVERTICAL );
 
+	_consolClearButton = new wxButton( _fireJsonPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT );
+	_consolClearButton->SetLabelMarkup( wxEmptyString );
+	_consolClearButton->SetForegroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_MENU ) );
+	_consolClearButton->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_MENU ) );
 
-	bSizer15->Add( 0, 0, 0, wxALL, 4 );
+	bSizer15->Add( _consolClearButton, 0, wxALIGN_RIGHT|wxALL, 0 );
 
 	_consol = new wxTextCtrl( _fireJsonPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
 	bSizer15->Add( _consol, 1, wxALL|wxEXPAND, 0 );

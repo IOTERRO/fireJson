@@ -8,7 +8,7 @@
 class MYSOCKET_API WebSocketManager
 {
 public:
-	WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage, std::function<void(AsyncWebSocketServer::WsStatus)> onWsStatus);
+	WebSocketManager(std::string host, const std::string& port, std::function<void(std::string)> onMessage, std::function<void(AsyncWebSocketServer::WsStatus, AsyncWebSocketServer::ClientInfo)> onWsStatus);
 	WebSocketManager(std::string host, const std::string& port);
     ~WebSocketManager();
 
@@ -23,9 +23,9 @@ public:
 	void sendWsMessage(const std::string& msg) const;
 private:
 	void subscribeForNewMessage(const std::string& msg) const;
-	void wsStatus(const AsyncWebSocketServer::WsStatus status);
+	void wsStatus(const AsyncWebSocketServer::WsStatus status, AsyncWebSocketServer::ClientInfo);
 	std::function<void(std::string)> _onMessage;
-	std::function<void(AsyncWebSocketServer::WsStatus)> _onWsStatus;
+	std::function<void(AsyncWebSocketServer::WsStatus, AsyncWebSocketServer::ClientInfo)> _onWsStatus;
 	std::shared_ptr<SyncWebSocketServer> _mySyncServer;
 	std::shared_ptr<AsyncWebSocketServer> _myAsyncServer;
 	std::shared_ptr<MyWebSocketClient> _myClient;
