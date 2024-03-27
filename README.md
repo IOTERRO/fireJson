@@ -16,7 +16,7 @@ fireJson is a versatile application built on the popular wxWidgets framework tha
 ## How to Use
 
 1. **Compose JSON Data:** Build or edit JSON data structures using the built-in editor.
-2. **Connect to Backend:** Establish a WebSocket connection to your backend server.
+2. **Connect to Backend:** The FireJson app acts as your BackEnd server, so you need to establish a WebSocket connection.
 3. **Send JSON Data:** Send your custom JSON payloads to the frontend in real-time.
 4. **Receive and Analyze:** Observe how your frontend processes the JSON data and make adjustments as needed.
 
